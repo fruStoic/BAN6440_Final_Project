@@ -1,0 +1,11 @@
+{
+  "highest_mean_average_precision_model": "logistic_regression",
+  "highest_mean_average_precision": 0.6548563069856297,
+  "models_practically_tied_with_best": [
+    "logistic_regression",
+    "hist_gradient_boosting",
+    "ann"
+  ],
+  "selected_model": "logistic_regression",
+  "selection_reason": "Pre-registered practical-tie rule. Among models tied with the highest mean PR-AUC, select the simplest model according to the locked order: logistic regression, gradient boosting, ANN."
+}

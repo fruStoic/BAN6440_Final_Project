@@ -1,0 +1,28 @@
+{
+  "created_utc": "2026-09-20T22:02:37.729954+00:00",
+  "dataset_sha256": "88be4b93fbe0cc83421af1c503794c97c342eca914c1576db7c276e61d61358a",
+  "split_seed": 20260920,
+  "holdout_fraction": 0.2,
+  "full": {
+    "rows": 7043,
+    "no_churn": 5174,
+    "churn": 1869,
+    "churn_rate": 0.2653698707936959
+  },
+  "development": {
+    "rows": 5634,
+    "no_churn": 4139,
+    "churn": 1495,
+    "churn_rate": 0.2653532126375577
+  },
+  "holdout": {
+    "rows": 1409,
+    "no_churn": 1035,
+    "churn": 374,
+    "churn_rate": 0.2654364797728886
+  },
+  "files": {
+    "assignments": "outputs/split_assignments.csv",
+    "protocol_lock": "outputs/protocol_lock.json"
+  }
+}

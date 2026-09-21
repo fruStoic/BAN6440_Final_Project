@@ -1,0 +1,3 @@
+stage,rows,columns,blank_TotalCharges,missing_values,duplicate_customerIDs
+raw_development,5634,21,8,0,0
+clean_development,5634,21,0,0,0

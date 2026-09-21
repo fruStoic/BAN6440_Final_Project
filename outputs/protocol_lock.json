@@ -1,0 +1,52 @@
+{
+  "created_utc": "2026-09-20T22:02:37.660645+00:00",
+  "status": "LOCKED_BEFORE_FINAL_PROJECT_MODELING",
+  "dataset": {
+    "file": "C:\\Users\\fru95\\OneDrive\\Documents\\BAN6440_Final_Project\\data\\teleconnect.csv",
+    "sha256": "88be4b93fbe0cc83421af1c503794c97c342eca914c1576db7c276e61d61358a"
+  },
+  "split": {
+    "seed": 20260920,
+    "holdout_fraction": 0.2,
+    "stratified": true,
+    "redraw_allowed": false
+  },
+  "model_comparison": {
+    "cross_validation": "RepeatedStratifiedKFold",
+    "n_splits": 5,
+    "n_repeats": 3,
+    "random_state": 20260920,
+    "matched_folds_across_models": true,
+    "primary_metric": "average_precision",
+    "practical_tie_rule": "Treat the top models as practically tied when the absolute mean paired fold-level PR-AUC difference is less than or equal to the standard deviation of those paired differences.",
+    "tie_preference": [
+      "logistic_regression",
+      "hist_gradient_boosting",
+      "ann"
+    ]
+  },
+  "calibration": {
+    "method": "sigmoid",
+    "cv": 5,
+    "method_pre_specified": true
+  },
+  "business_decision": {
+    "contact_cost": 2.0,
+    "offer_cost": 65.0,
+    "acceptance_rate": 0.4,
+    "incremental_retention_uplift": 0.15,
+    "uplift_definition": "Incremental probability that the retention intervention prevents churn among customers who otherwise would have churned, measured across all contacted customers.",
+    "monthly_revenue_proxy": 65.0,
+    "contribution_margin_rate": 0.3,
+    "horizon_months": 24,
+    "total_contribution_margin": 468.0,
+    "exact_break_even_threshold": 0.39886039886039887,
+    "operational_threshold": 0.4
+  },
+  "hypotheses": [
+    "Gradient boosting is expected to perform at least as well as logistic regression and the incumbent Module 6 ANN.",
+    "The incumbent Module 6 ANN is expected to show some probability over-confidence.",
+    "If the selected model is over-confident, sigmoid calibration may reduce the number of customers exceeding the 0.40 economic threshold."
+  ],
+  "holdout_rule": "The holdout will be evaluated once after model selection, calibration, threshold, protected-attribute decision and all development-stage choices are frozen."
+}

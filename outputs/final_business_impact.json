@@ -1,0 +1,28 @@
+{
+  "base_case": {
+    "uplift": 0.15,
+    "horizon_months": 24,
+    "threshold": 0.39886039886039887,
+    "decision": "run_campaign",
+    "selected": 415,
+    "selected_percent": 0.2945351312987935,
+    "actual_precision": 0.5927710843373494,
+    "actual_recall": 0.6577540106951871,
+    "expected_churn_probability_sum": 243.60897617629382,
+    "expected_prevented_churn": 36.54134642644407,
+    "campaign_cost": 11620.0,
+    "expected_benefit": 17101.350127575828,
+    "expected_net": 5481.350127575828,
+    "roi": 0.47171687844886645
+  },
+  "rounding_check": {
+    "exact_threshold": 0.39886039886039887,
+    "operational_threshold": 0.4,
+    "selected_exact": 415,
+    "selected_operational": 414,
+    "count_difference": -1,
+    "identical_customer_set": false
+  },
+  "cost_per_selected_customer": 28.0,
+  "benefit_coefficient_base_case": 70.19999999999999
+}

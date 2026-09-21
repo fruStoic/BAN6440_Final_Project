@@ -1,0 +1,23 @@
+{
+  "scope": "development_oof",
+  "rows": 5634,
+  "method": "sigmoid",
+  "outer_folds": 5,
+  "inner_calibration_folds": 5,
+  "uncalibrated": {
+    "brier": 0.13581745943490425,
+    "average_precision": 0.6537470988602302,
+    "roc_auc": 0.8440418694512836,
+    "selected_at_0_40": 1677,
+    "selected_percent": 0.2976570820021299
+  },
+  "calibrated": {
+    "brier": 0.13586737605449573,
+    "average_precision": 0.6536691405388108,
+    "roc_auc": 0.8440270014973,
+    "selected_at_0_40": 1668,
+    "selected_percent": 0.29605963791267303
+  },
+  "brier_change": 4.991661959147242e-05,
+  "selection_count_change": -9
+}

@@ -1,0 +1,73 @@
+{
+  "frozen_utc": "2026-09-20T23:01:41.318461+00:00",
+  "status": "FROZEN_BEFORE_HOLDOUT",
+  "development_protocol": {
+    "split_seed": 20260920,
+    "cv_splits": 5,
+    "cv_repeats": 3,
+    "cv_random_state": 20260920,
+    "primary_metric": "average_precision"
+  },
+  "selected_model": {
+    "type": "logistic_regression",
+    "solver": "lbfgs",
+    "max_iter": 2000
+  },
+  "feature_policy": {
+    "excluded_predictors": [
+      "gender",
+      "SeniorCitizen"
+    ],
+    "expected_raw_predictors": 17,
+    "purpose_of_excluded_variables": "Fairness auditing only"
+  },
+  "preprocessing": {
+    "numeric": "StandardScaler fitted on training data",
+    "categorical": "OneHotEncoder(drop='first', handle_unknown='ignore')"
+  },
+  "calibration": {
+    "method": "sigmoid",
+    "cv": 5,
+    "note": "Sigmoid retained because it was pre-specified despite negligible development Brier improvement."
+  },
+  "decision_rule": {
+    "operational_threshold": 0.4,
+    "exact_economic_threshold": 0.39886039886039887
+  },
+  "business_assumptions": {
+    "contact_cost": 2.0,
+    "offer_cost": 65.0,
+    "acceptance_rate": 0.4,
+    "incremental_retention_uplift": 0.15,
+    "monthly_revenue_proxy": 65.0,
+    "contribution_margin_rate": 0.3,
+    "horizon_months": 24
+  },
+  "incumbent_comparator": {
+    "name": "Module 6 ANN",
+    "architecture": "32 ReLU -> Dropout(0.3) -> 16 ReLU -> sigmoid",
+    "optimizer": "SGD",
+    "learning_rate": 0.01,
+    "batch_size": 32,
+    "max_epochs": 150,
+    "early_stopping_patience": 10,
+    "inner_validation_fraction": 0.15
+  },
+  "holdout_plan": {
+    "evaluate_selected_model": true,
+    "evaluate_incumbent_ann": true,
+    "final_group_audit": [
+      "gender",
+      "SeniorCitizen"
+    ],
+    "business_impact_analysis": true,
+    "sensitivity_analysis": true,
+    "no_post_holdout_tuning": true
+  },
+  "development_artifact_hashes": {
+    "split_manifest.json": "ec5467ec8e332d3b72971944389db3eb35064e4e9cda72c3d60fdacf650f2c61",
+    "model_selection.json": "4585667a606098a5a527019237f67bd08677f7af4cd351698d44d48b86007656",
+    "protected_attribute_decision.json": "23f2cb7e22fb8cc565bb0e8f42037361598d4489e52023cff094612e9af37859",
+    "final_feature_calibration_summary.json": "f18c533c59d4d5cd0fec5d4c2b8fe5d7093945c15c3b654e98c4b35200f9136d"
+  }
+}

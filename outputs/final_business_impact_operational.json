@@ -1,0 +1,29 @@
+{
+  "note": "Post-processing correction from immutable saved holdout predictions. No model was retrained and no threshold was changed.",
+  "operational_0_40": {
+    "threshold": 0.4,
+    "selected": 414,
+    "selected_percent": 0.29382540809084456,
+    "probability_sum": 243.20899931064218,
+    "expected_prevented_churn": 36.48134989659633,
+    "campaign_cost": 11592.0,
+    "expected_benefit": 17073.27175160708,
+    "expected_net": 5481.271751607081,
+    "roi": 0.4728495299868082
+  },
+  "exact_break_even": {
+    "threshold": 0.39886039886039887,
+    "selected": 415,
+    "selected_percent": 0.2945351312987935,
+    "probability_sum": 243.60897617629382,
+    "expected_prevented_churn": 36.54134642644407,
+    "campaign_cost": 11620.0,
+    "expected_benefit": 17101.350127575828,
+    "expected_net": 5481.350127575828,
+    "roi": 0.47171687844886645
+  },
+  "rounding_effect": {
+    "customer_difference": -1,
+    "net_value_difference": -0.07837596874742303
+  }
+}

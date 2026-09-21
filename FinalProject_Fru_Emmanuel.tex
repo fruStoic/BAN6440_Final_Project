@@ -1,0 +1,451 @@
+\documentclass[11pt]{article}
+\usepackage[letterpaper,margin=0.92in]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{amsmath,amssymb}
+\usepackage{microtype}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{xcolor}
+\usepackage[round,authoryear]{natbib}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{setspace}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage{ragged2e}
+\usepackage{url}
+\usepackage{titlesec}
+\usepackage{parskip}
+
+\definecolor{navy}{RGB}{18,52,86}
+\hypersetup{colorlinks=true,linkcolor=navy,urlcolor=navy,citecolor=navy,pdfauthor={Emmanuel Fru},pdftitle={End-to-End ML Architecture and Interoperability Proposal}}
+\setstretch{1.06}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt}
+\setlist[itemize]{nosep,leftmargin=1.35em}
+\setlist[enumerate]{nosep,leftmargin=1.5em}
+\captionsetup{font=small,labelfont=bf}
+\titleformat{\section}{\large\bfseries\color{navy}}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{0.45em}{}
+\titlespacing*{\section}{0pt}{8pt}{4pt}
+\titlespacing*{\subsection}{0pt}{6pt}{2pt}
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{BAN6440 Machine Learning}
+\rhead{Emmanuel Fru}
+\cfoot{\thepage}
+\setlength{\headheight}{14pt}
+\renewcommand{\headrulewidth}{0.3pt}
+\newcommand{\takeaway}[1]{\vspace{1pt}\noindent\textbf{Takeaway:} #1\vspace{3pt}}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\pp}{\,pp}
+\newcolumntype{Y}{>{\RaggedRight\arraybackslash}X}
+\newcolumntype{C}{>{\centering\arraybackslash}p{0.13\textwidth}}
+
+\begin{document}
+\pagenumbering{roman}
+
+\begin{titlepage}
+\centering
+\vspace*{1.0in}
+{\Large\bfseries Nexford University\par}
+\vspace{0.45in}
+{\LARGE\bfseries End-to-End ML Architecture \& Interoperability Proposal\par}
+\vspace{0.15in}
+{\Large Telecom Churn Retention Decision System\par}
+\vspace{0.7in}
+{\large BAN6440 Machine Learning\par}
+\vspace{0.5in}
+{\large Emmanuel Fru\par}
+\vfill
+{\large September 2026\par}
+\vspace{0.3in}
+\begin{minipage}{0.84\textwidth}
+\small
+\textbf{Project scope.} This final project extends the Module 6 telecom churn pipeline into a production-minded decision system. It compares multiple predictive models, evaluates probability calibration and demographic feature ablation, derives a business threshold from campaign economics, opens a sealed final holdout once, and proposes an Azure deployment architecture with monitoring, governance, and treatment-feedback controls.
+\end{minipage}
+\vfill
+\end{titlepage}
+\clearpage
+\pagenumbering{arabic}
+
+\section{Problem and Business Value}
+
+This project develops a production-minded churn decision system for a telecommunications retention campaign using the supplied course file derived from the IBM Telco Customer Churn sample. IBM describes the sample as a fictional telecommunications churn dataset; the course file used here contains 7,043 customer records, which matches the widely distributed sample size \citep{ibm2019}. The work extends the Module 6 churn-classification pipeline, but changes the focus from model optimization alone to the complete decision process required for production use.
+
+\subsection{Business decision and stakeholders}
+
+The operational question is not simply whether a customer is likely to churn. The decision is whether a customer's estimated churn risk is high enough to justify the cost of a retention intervention. Contacting every customer would consume campaign resources and discount spend on customers who are unlikely to leave, while an overly conservative rule would miss customers with economically actionable risk.
+
+The primary stakeholders are retention marketing, finance, data protection and governance, and the data science team. Retention marketing needs a ranked and auditable contact list. Finance needs expected campaign value to exceed intervention cost. Governance stakeholders need evidence that sensitive attributes are handled appropriately and that error patterns are monitored across groups. The data science team is responsible for reproducibility, probability quality, monitoring, and model lifecycle control.
+
+\subsection{Economic decision rule}
+
+The operating rule was fixed before the final holdout was opened. Expected contact value is defined as
+
+\begin{equation}
+EV(\text{contact}) = p_{\text{churn}}uM - C_{\text{contact}} - p_{\text{accept}}C_{\text{offer}},
+\end{equation}
+
+where $u$ is the incremental probability that the intervention prevents churn among customers who otherwise would have churned, measured across all contacted customers, and $M$ is the retained contribution margin over the planning horizon.
+
+The base case uses planning assumptions rather than dataset facts: contact cost = \$2, offer cost = \$65 if accepted, acceptance probability = 0.40, uplift $u$ = 0.15, contribution margin = 30\% of \$65 per month, and horizon = 24 months. This gives $M=0.30\times65\times24=\$468$ and
+
+\begin{equation}
+p^*=\frac{2+(0.40\times65)}{0.15\times468}=0.398860.
+\end{equation}
+
+The pre-registered operational threshold is therefore 0.40. A fixed top-$k$ rule was not used because no actual campaign capacity was supplied. If a capacity constraint is later introduced, customers above the economic threshold can be ranked and truncated to that capacity.
+
+\subsection{Success measures and constraints}
+
+Business success is measured through the number selected at 0.40, precision and recall at the operating point, expected net contribution, and expected campaign ROI. PR-AUC, ROC-AUC, and Brier score are supporting model-quality measures. The primary constraints are privacy, weekly rather than real-time decision latency, uncertain campaign uplift, and the need to monitor demographic-group behavior even when demographic fields are not used as predictors.
+
+\takeaway{The model is evaluated as a decision-support system. Predictive quality matters because it changes who receives an intervention and whether that intervention is economically defensible.}
+
+\section{Data Strategy and Cleansing}
+
+\subsection{Data source, target, and final-project split}
+
+The dataset contains 7,043 customer records and 21 columns, including \code{customerID} and the binary target \code{Churn}. After removing the identifier and target, the original modeling table contains 19 predictors. There are 5,174 non-churners and 1,869 churners, giving a churn prevalence of 26.54\%. The majority-class accuracy is therefore 73.46\%, which is used as the minimum accuracy reference.
+
+Because the Module 6 test set had already been inspected, it was not reused as an untouched final-project test set. A new stratified 80/20 split was created using the non-data-driven seed \code{20260920}. The split was persisted before experimentation and was never redrawn.
+
+\begin{table}[H]
+\centering\small
+\caption{Final-project split manifest}
+\begin{tabular}{lrrr}
+\toprule
+Split & Customers & Churn & Churn rate \\
+\midrule
+Full dataset & 7,043 & 1,869 & 26.537\% \\
+Development & 5,634 & 1,495 & 26.535\% \\
+Final holdout & 1,409 & 374 & 26.544\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+\takeaway{Stratification preserved the original churn prevalence almost exactly while keeping 1,409 customers sealed for one-time final evaluation.}
+
+The development set was used for model comparison, calibration assessment, demographic-feature ablation, and preliminary fairness analysis. The final holdout was opened only after the full pipeline had been frozen. This is still an internal evaluation rather than pristine external validation because the same underlying dataset had been used in Module 6; preprocessing and architecture choices were therefore informed by prior exposure to the source dataset.
+
+\subsection{Missing values, types, and outliers}
+
+The main data-quality issue was \code{TotalCharges}, which was stored as text. The final-project development audit found eight blank values; every blank occurred where \code{tenure = 0}. The rule was therefore deterministic: strip whitespace, convert valid values to numeric, verify that blank values occur only at zero tenure, and assign those blanks to zero. No rows were dropped and no statistical imputation was used.
+
+An IQR audit on \code{tenure}, \code{MonthlyCharges}, and \code{TotalCharges} found no values outside the 1.5-IQR bounds. No capping, winsorization, or outlier removal was applied. This avoids deleting valid high-value or long-tenure customers merely because they are statistically unusual.
+
+The development audit also documented structural redundancy. Among 1,227 development customers with \code{InternetService = No}, six internet add-on fields were aligned with the ``No internet service'' state. In addition, \code{TotalCharges} correlated 0.999562 with \code{tenure * MonthlyCharges}. These relationships were documented rather than removed post hoc because feature selection was not added after observing development results.
+
+\subsection{Leakage-safe preprocessing and demographic policy}
+
+The four numeric fields were \code{SeniorCitizen}, \code{tenure}, \code{MonthlyCharges}, and \code{TotalCharges}. The other 15 predictors were categorical. Numeric inputs were standardized with \code{StandardScaler}. Categorical inputs used one-hot encoding with the first category dropped and previously unseen categories ignored. The full representation produced 30 encoded features.
+
+All transformations were fitted only on the training portion of each cross-validation fold. Validation observations therefore did not contribute to scaling parameters or categorical encoding state.
+
+After demographic ablation, \code{gender} and \code{SeniorCitizen} were removed from prediction because the reduced logistic model remained practically tied with the full model. They were retained separately for fairness auditing. The final production feature policy therefore contains 17 raw predictive variables and 28 encoded features.
+
+\takeaway{The final data pipeline preserves all valid records, uses only deterministic cleaning supported by observed data, and separates demographic audit fields from the 17-variable predictive feature set.}
+
+\section{Modeling Approach}
+
+\subsection{Evaluation protocol and candidates}
+
+All model development occurred on the 5,634-customer development set. Model comparison used 5-fold stratified cross-validation repeated three times, producing 15 matched folds for every candidate. Repeated stratification was chosen to preserve the 26.5\% minority-class prevalence across folds while reducing dependence on a single split. Preprocessing was fitted separately within each training fold.
+
+Four candidates were compared: a majority-class baseline, logistic regression, HistGradientBoosting, and the incumbent Module 6 ANN. The ANN reproduced the prior architecture: 30 encoded inputs, Dense(32, ReLU), Dropout(0.30), Dense(16, ReLU), and a sigmoid output. It used SGD with learning rate 0.01, batch size 32, at most 150 epochs, and a 15\% inner validation split with early stopping patience of 10 epochs.
+
+PR-AUC was the primary selection metric because the churn class is less prevalent than non-churn and precision-recall analysis is particularly informative when class prevalence is unequal \citep{saito2015}. ROC-AUC, accuracy, precision, recall, F1, and Brier score were retained as supporting measures.
+
+A practical-tie rule was fixed before results were observed. For the highest-mean PR-AUC model and each competing predictive model, paired fold-level differences were calculated. If the absolute mean paired difference was no greater than the standard deviation of those differences, the models were treated as practically tied. No significance test was claimed because repeated folds reuse observations and are not independent.
+
+\subsection{Probability calibration}
+
+The business rule depends on the magnitude of predicted probability, not only ranking. Sigmoid calibration was therefore pre-specified and evaluated using out-of-fold development predictions. Calibration quality was assessed with Brier score and reliability behavior. Platt-style sigmoid calibration is an established method for transforming classifier scores into probability estimates \citep{niculescu2005}.
+
+The method was fixed in advance. If calibration failed to improve probability quality, the project would report that result rather than search post hoc for a more favorable calibrator.
+
+\subsection{Protected-attribute ablation and freeze}
+
+The selected logistic model was rerun on the same 15 folds after removing \code{gender} and \code{SeniorCitizen}. The governance rule was also fixed in advance: if the reduced model remained practically tied on PR-AUC, the demographic variables would be removed from prediction. This does not imply that fairness is achieved through omission alone; correlated features and different group prevalences can still produce unequal outcomes \citep{fazelpour2021}.
+
+After model selection, calibration assessment, demographic ablation, and preliminary fairness analysis, the complete pipeline was frozen: logistic regression, 17 raw predictive variables, 28 encoded features, preprocessing, sigmoid calibration, and the 0.40 economic threshold. Eleven automated tests passed before the final holdout was opened.
+
+\takeaway{The protocol separates model development from final evaluation and uses pre-registered rules to prevent complexity, calibration method, or demographic feature policy from being changed after seeing the holdout.}
+
+\section{Architecture and Interoperability}
+
+The proposed production design uses a single Azure environment to keep identity, networking, audit logging, model governance, and billing within one operational boundary. A weekly batch workflow is appropriate because retention decisions are campaign-based rather than millisecond transactions. Azure Machine Learning batch endpoints are designed for asynchronous inference and are recommended when low latency is not required \citep{azurebatch}.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{/mnt/data/final_report/assets/architecture.png}
+\caption{Proposed end-to-end Azure architecture for churn scoring and retention feedback.}
+\end{figure}
+\takeaway{The production path separates source ingestion, feature preparation, model lifecycle management, scoring, campaign execution, and treatment-aware feedback while preserving lineage across the decision loop.}
+
+Customer billing, CRM, and usage/service systems feed scheduled ingestion through Azure Data Factory, which Microsoft documents as a cloud data-integration service for orchestrating and automating data movement and transformation \citep{adf}. Raw and validated customer snapshots are stored in Azure Data Lake/Synapse. Databricks performs feature preparation and maintains a versioned feature snapshot; Databricks Feature Store provides governance, lineage, and point-in-time joins for registered features \citep{featurestore}.
+
+Training and lifecycle management occur in Azure Machine Learning. The deployable artifact contains preprocessing, logistic regression, sigmoid calibration, and the fixed threshold as one versioned unit. Azure Machine Learning supports MLflow model registration and recommends registration from runs when lineage from the generating job should be preserved \citep{mlflowazure}. Scoring jobs reference a pinned model version rather than an implicit ``latest'' version.
+
+\begin{table}[H]
+\centering\scriptsize
+\caption{Key interoperability contracts}
+\begin{tabularx}{\textwidth}{p{0.24\textwidth}p{0.24\textwidth}Y}
+\toprule
+Connection & Interface & Contract / control \\
+\midrule
+Sources $\rightarrow$ Data Factory & Scheduled connectors / ELT & Schema contract, required fields, quality gate \\
+Data Factory $\rightarrow$ Lake/Synapse & Managed ingestion & Validated snapshot and lineage \\
+Synapse $\rightarrow$ Databricks & SQL / Spark & Point-in-time correct feature logic \\
+Feature tables $\rightarrow$ Azure ML & Versioned snapshot & Reproducible training input \\
+Azure ML $\rightarrow$ MLflow registry & Model artifact & Model + preprocessing + calibrator + threshold versioned together \\
+Registry $\rightarrow$ scoring & Pinned model version & No implicit latest-version deployment \\
+Scores $\rightarrow$ CRM & Table / API & Customer ID, calibrated risk, contact flag, model version, score date \\
+CRM $\rightarrow$ lake & Outcome feed & Treatment, acceptance, campaign result, subsequent churn \\
+\bottomrule
+\end{tabularx}
+\end{table}
+\takeaway{Interoperability is defined as explicit data and model contracts rather than only a sequence of cloud services.}
+
+The feedback path is critical. A high-risk customer who receives an effective retention intervention may later appear as a non-churner because treatment changed the outcome. Retraining without treatment status can therefore contaminate future labels. The architecture records treatment assignment, contact, acceptance, and outcome, and preserves a randomized untreated control where operationally and ethically appropriate. This supports unbiased campaign evaluation and future uplift modeling, which is fundamentally a causal treatment-effect problem rather than ordinary risk prediction \citep{gutierrez2017}.
+
+Security controls include Entra ID RBAC, managed identities, TLS, encryption at rest, Key Vault, private endpoints, restricted access to PII, and audit logs. Microsoft recommends managed identities to avoid credentials in application code and Key Vault for secrets such as API keys and connection strings \citep{managedidentity,keyvault}.
+
+\section{Evaluation and Decision Impact}
+
+\subsection{Development model comparison}
+
+\begin{table}[H]
+\centering\small
+\caption{Development model comparison across 15 matched folds}
+\begin{tabular}{lccccc}
+\toprule
+Model & PR-AUC & ROC-AUC & F1 & Accuracy & Brier \\
+\midrule
+Majority baseline & 0.2654 & 0.5000 & 0.0000 & 0.7346 & 0.1949 \\
+Logistic regression & \textbf{0.6549} & \textbf{0.8437} & \textbf{0.5967} & \textbf{0.8041} & \textbf{0.1361} \\
+HistGradientBoosting & 0.6425 & 0.8339 & 0.5746 & 0.7949 & 0.1413 \\
+ANN & 0.6532 & 0.8414 & 0.5866 & 0.8014 & 0.1370 \\
+\bottomrule
+\end{tabular}
+\end{table}
+\takeaway{Logistic regression had the highest mean PR-AUC, but the predefined paired-fold rule treated the predictive candidates as practical ties, so simplicity determined the final choice.}
+
+Logistic versus HistGradientBoosting had a mean paired PR-AUC difference of 0.012400 with paired SD 0.013514. Logistic versus ANN had a mean difference of 0.001619 with paired SD 0.009056. Both satisfied the practical-tie rule. No additional hyperparameter search was introduced after observing this result.
+
+The protected-attribute ablation also supported the reduced feature policy. Full-feature logistic regression produced mean PR-AUC 0.654856, while the reduced model produced 0.657584. The mean paired difference (full minus reduced) was -0.002728 with paired SD 0.003989, so the models were practically tied and the demographic variables were removed from prediction.
+
+\subsection{Calibration and final holdout}
+
+For the final reduced feature set, development Brier score changed from 0.135828 raw to 0.135868 after sigmoid calibration. On the final holdout, raw Brier was 0.135535 and calibrated Brier was 0.135621. The pre-registered hypothesis of material over-confidence was therefore not supported. The sigmoid calibrator was retained because it had been specified before evaluation rather than being replaced after the result was known.
+
+The final holdout contained 1,409 customers: 1,035 non-churners and 374 churners. At the fixed 0.40 operating threshold, the model selected 414 customers (29.38\%).
+
+\begin{table}[H]
+\centering\small
+\caption{Final holdout performance with 95\% bootstrap intervals}
+\begin{tabular}{lccc}
+\toprule
+Metric & Estimate & 2.5\% & 97.5\% \\
+\midrule
+Accuracy & 0.7899 & 0.7693 & 0.8119 \\
+Precision & 0.5942 & 0.5459 & 0.6437 \\
+Recall & 0.6578 & 0.6081 & 0.7062 \\
+F1 & 0.6244 & 0.5845 & 0.6650 \\
+PR-AUC & 0.6484 & 0.5958 & 0.7019 \\
+ROC-AUC & 0.8470 & 0.8255 & 0.8680 \\
+Brier score & 0.1356 & 0.1260 & 0.1452 \\
+\bottomrule
+\end{tabular}
+\end{table}
+\takeaway{Holdout discrimination remained close to development performance, while the confidence intervals caution against over-interpreting small differences between models.}
+
+The holdout confusion matrix was TN=867, FP=168, FN=128, TP=246. The majority baseline accuracy was 73.46\%, so the final 78.99\% accuracy is interpreted alongside, not instead of, the more decision-relevant precision, recall, PR-AUC, and probability metrics.
+
+The incumbent Module 6 ANN achieved accuracy 0.7928, precision 0.6454, recall 0.4866, F1 0.5549, PR-AUC 0.6439, ROC-AUC 0.8445, and Brier 0.1364. Its accuracy and precision were slightly higher, but the logistic model had higher recall, F1, PR-AUC, ROC-AUC, and slightly lower Brier loss. Because the ANN used its historical 0.50 classification threshold while logistic regression used the economic 0.40 threshold, threshold-independent PR-AUC, ROC-AUC, and Brier are the cleaner model-level comparison. Those measures did not justify the ANN's additional complexity.
+
+\subsection{Business impact and sensitivity}
+
+The exact economic threshold, 0.398860, selected 415 holdout customers. The pre-registered operational value 0.40 selected 414. Rounding therefore changed one decision, while expected net value differed by only about \$0.08.
+
+At 0.40, the sum of calibrated probabilities among selected customers was 243.208999. Under the 15\% uplift planning assumption, expected prevented churn is $243.208999\times0.15=36.48$. Campaign cost is $414\times[2+(0.4\times65)]=\$11,592$. Expected benefit is \$17,073.27, expected net value is \$5,481.27, and expected ROI is 47.28\%. These are model-based expected values, not realized campaign returns.
+
+\begin{table}[H]
+\centering\scriptsize
+\caption{Business sensitivity to uplift and retained-value horizon}
+\begin{tabular}{cccccrr}
+\toprule
+Uplift & Horizon & Break-even $p$ & Decision & Selected & Expected net & ROI \\
+\midrule
+0.10 & 12 mo & 1.1966 & Never profitable & 0 & -- & -- \\
+0.10 & 24 mo & 0.5983 & Run campaign & 190 & \$794.15 & 14.93\% \\
+0.10 & 36 mo & 0.3989 & Run campaign & 415 & \$5,481.35 & 47.17\% \\
+0.15 & 12 mo & 0.7977 & Run campaign & 2 & \$1.54 & 2.75\% \\
+0.15 & 24 mo & 0.3989 & Run campaign & 415 & \$5,481.35 & 47.17\% \\
+0.15 & 36 mo & 0.2659 & Run campaign & 579 & \$15,190.93 & 93.70\% \\
+0.25 & 12 mo & 0.4786 & Run campaign & 329 & \$2,831.64 & 30.74\% \\
+0.25 & 24 mo & 0.2393 & Run campaign & 617 & \$18,737.61 & 108.46\% \\
+0.25 & 36 mo & 0.1595 & Run campaign & 768 & \$37,666.52 & 175.16\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+\takeaway{Campaign size is far more sensitive to intervention uplift and retained-customer value than to the small predictive differences among the candidate models.}
+
+The most important management implication is therefore not that PR-AUC is approximately 0.65. It is that improving the evidence for intervention uplift and contribution margin may create more decision value than pursuing marginal increases in classifier complexity.
+
+\section{Risk, Governance, and Ethical Considerations}
+
+\subsection{Fairness and protected attributes}
+
+The final model excludes \code{gender} and \code{SeniorCitizen} from prediction because ablation showed no meaningful performance loss. Their removal should not be interpreted as proof of fairness. ``Fairness through unawareness'' can fail because other variables may encode correlated information and because real-world group prevalences can differ \citep{fazelpour2021}. Both variables were therefore retained strictly for group-level monitoring.
+
+\begin{table}[H]
+\centering\scriptsize
+\caption{Final holdout fairness audit}
+\begin{tabular}{llrrrrrr}
+\toprule
+Attribute & Group & $n$ & Churn & Selected & Precision & Recall & FPR \\
+\midrule
+Gender & Female & 722 & 26.18\% & 30.06\% & 58.99\% & 67.72\% & 16.70\% \\
+Gender & Male & 687 & 26.93\% & 28.68\% & 59.90\% & 63.78\% & 15.74\% \\
+SeniorCitizen & 0 & 1,168 & 22.77\% & 25.60\% & 55.18\% & 62.03\% & 14.86\% \\
+SeniorCitizen & 1 & 241 & 44.81\% & 47.72\% & 70.43\% & 75.00\% & 25.56\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+\takeaway{Gender metrics were similar, while seniors had much higher churn prevalence, selection rate, recall, and false-positive rate despite \code{SeniorCitizen} not being used as a predictor.}
+
+The senior group also had Brier score 0.1773 versus 0.1270 for non-seniors, and a mean calibration gap of -6.30 percentage points versus +1.12 points for non-seniors. This is a monitoring concern rather than standalone proof of discriminatory treatment. It may reflect prevalence differences, proxy effects, or other group-specific structure.
+
+\subsection{Prediction error, privacy, and human oversight}
+
+False positives spend campaign resources on customers who would not have churned; false negatives miss a retention opportunity. The 0.40 threshold does not minimize either error independently. It reflects the stated business economics.
+
+PII should be separated from analytical features and reattached only when scores return to the CRM. Access should be role-restricted. The optional generative-AI component is intentionally bounded: it may draft a message from approved risk drivers and a predefined offer, but should not receive raw PII, invent a financial offer, or send content without human review.
+
+\subsection{Intervention bias, causal limitation, and drift}
+
+Once the model affects who receives treatment, observed outcomes no longer represent untreated churn risk. A successfully retained high-risk customer may appear as a non-churner precisely because the campaign worked. Treatment exposure therefore has to be logged, and a randomized untreated control should be maintained when feasible. The current model predicts churn risk; it does not estimate who is persuadable. Future uplift modeling should be based on controlled treatment data \citep{gutierrez2017}.
+
+The assumed 15\% uplift is therefore a planning parameter, not an empirical result from this dataset. Likewise, the dataset contains no timestamp field, so temporal generalization cannot be tested directly. Production monitoring should track feature drift, prediction drift, churn prevalence, calibration, and demographic-group behavior. An alert should trigger investigation rather than automatic retraining.
+
+\takeaway{The main production risks are not limited to prediction error. Calibration by group, privacy, treatment-contaminated labels, uncertain uplift, and temporal drift all affect whether the decision system remains defensible.}
+
+\section{Deployment-Ready Plan}
+
+\subsection{Packaging, schedule, and release}
+
+The deployable unit should contain the final feature policy, preprocessing, logistic regression, sigmoid calibrator, and 0.40 operating threshold as one versioned artifact. Each release should be linked to its feature snapshot, environment specification, evaluation outputs, and code version. MLflow registration supports versioned lifecycle management and lineage in Azure Machine Learning \citep{mlflowazure}.
+
+Scoring runs once per week after billing, CRM, and usage data have completed their refresh. The pipeline validates the source snapshot, constructs the versioned feature table, scores customers using a pinned model version, writes calibrated probabilities and contact flags, and publishes the selected list to the campaign platform. A real-time endpoint is unnecessary because no downstream decision consumes millisecond latency; Azure batch inference is aligned with this operational cadence \citep{azurebatch}.
+
+A candidate model should shadow-score one campaign cycle before promotion. During shadowing, predictions are generated but do not control contact decisions. Score distribution, calibration, and segment behavior can be compared against the active model before approval.
+
+\subsection{Monitoring, rollback, and runbook}
+
+\begin{table}[H]
+\centering\small
+\caption{Proposed production controls}
+\begin{tabularx}{\textwidth}{p{0.30\textwidth}Y}
+\toprule
+Control & Proposed rule \\
+\midrule
+Batch completion & Complete within 2 hours of scheduled start \\
+Score freshness & Less than 7 days old \\
+Data-quality failure & Stop scoring on required-column, type, or schema failure \\
+Feature / prediction drift & Monitor distribution changes by scoring period \\
+Churn prevalence & Alert on material movement from the historical 26.5\% reference \\
+Calibration & Track Brier score and reliability overall and by monitored groups \\
+Lineage & Persist model version, score date, and feature snapshot identifier \\
+Rollback & Restore the previous approved registry version by pointer change \\
+\bottomrule
+\end{tabularx}
+\end{table}
+\takeaway{The production plan treats the model as a versioned decision system with explicit operational checks, not as a standalone serialized classifier.}
+
+The final holdout Brier score of 0.1356 is an initial reference, not a permanent alert threshold. Production limits should be established only after several live scoring cycles reveal normal operating variation.
+
+The runbook should verify snapshot completion, schema checks, approved model version, row counts, score distribution, contact-list size, publication to CRM, treatment logging, fairness metrics, and monitoring alerts. The previous approved artifact remains available for rollback without reconstructing an earlier environment.
+
+\section{AI Usage Disclosure and Reflection}
+
+Generative AI was used as a development assistant, not as an autonomous evaluator. Claude was used to help create the initial project brief and for a final review of the completed work. ChatGPT was used more extensively for methodological review, Python development and debugging, interpretation of experimental outputs, architecture design, fairness and business-impact analysis, and drafting/refining the report and supporting documentation. Model training, testing, and the final holdout evaluation were executed locally.
+
+\subsection{Tools and specific applications}
+
+\begin{table}[H]
+\centering\scriptsize
+\caption{AI tools and their project roles}
+\begin{tabularx}{\textwidth}{p{0.16\textwidth}p{0.34\textwidth}Y}
+\toprule
+Tool & Specific use & Verification \\
+\midrule
+Claude & Initial project brief; final review of completed work & Compared against assignment requirements, project artifacts, and the final evidence set \\
+ChatGPT & Protocol review; Python code drafting/debugging; interpretation of CV, calibration, ablation, fairness, holdout and business outputs & Local execution, persisted CSV/JSON outputs, automated tests, manual recalculation \\
+ChatGPT & Azure architecture and interoperability planning; report, Model Card, README drafting & Primary-source verification and manual editing \\
+ChatGPT image generation & Architecture visual from an approved technical specification & First version rejected; second academic-style diagram manually reviewed and accepted \\
+\bottomrule
+\end{tabularx}
+\end{table}
+\takeaway{AI accelerated planning, implementation, review, and drafting, but empirical results and final methodological decisions remained tied to locally generated artifacts and pre-registered rules.}
+
+\subsection{Refinement episodes}
+
+\textbf{Episode 1: evaluation protocol.} The exact project-review prompt was: \emph{``I've attached my final project and a brief I'd like to stick to in drafting this. Review both documents and flag any anomaly before we start drafting the final project.''} The review identified that the Module 6 test set had already been inspected. The protocol was revised before experimentation to create a new persisted 80/20 split and reserve the 1,409-row holdout until freeze. The limitation that this is still the same underlying source dataset was retained explicitly.
+
+\textbf{Episode 2: model complexity and calibration.} Development outputs were supplied for interpretation rather than replaced with AI estimates. Logistic regression, HGB, and ANN were practically tied under the locked paired-fold rule, so logistic regression was selected for simplicity. Later, sigmoid calibration slightly worsened Brier score on both development and holdout data. Rather than search post hoc for another calibrator, the pre-specified method was retained and the failed hypothesis was reported.
+
+\textbf{Episode 3: post-holdout reporting bug.} After the one-time holdout run, AI review noticed that the classification summary selected 414 customers at 0.40 while the printed business summary selected 415. The discrepancy came from using the exact 0.398860 threshold inside the sensitivity function. The model was not retrained and the holdout was not rerun. A separate post-processing script recomputed the operational business result from immutable saved predictions, producing 414 selected customers and 47.28\% expected ROI.
+
+\textbf{Episode 4: architecture visual.} The first generated architecture graphic contained the right components but was visually dense. The exact refinement prompt was: \emph{``architecture diagram looks too noisy. I need a standard scientific paper type diagram that is academically acceptable. Not AI slop.''} The first visual was rejected and replaced by the simpler technical diagram used in Section 4.
+
+\subsection{Verification and reflection}
+
+Verification methods included local Python execution, persistent CSV/JSON artifacts, manual arithmetic checks, primary-source reference verification, frozen configuration artifacts, and an automated test suite. All 11 tests passed before the holdout was opened.
+
+The most useful AI interactions were often those that produced a correction rather than a finished answer. The evaluation protocol changed, the expected model ordering was not supported, the calibration hypothesis failed, removing demographic variables did not eliminate group disparities, a post-holdout reporting inconsistency was corrected without rerunning the model, and the first architecture visual was rejected. These cases reinforced that AI output should be treated as a draft, hypothesis, or review input rather than evidence. Responsibility for accepting methodological changes, interpreting results, and approving the final submission remained with the student.
+
+\takeaway{Responsible AI use in this project is demonstrated by traceable prompts, rejected outputs, failed hypotheses, independent verification, and preservation of the locked evaluation protocol.}
+
+\newpage
+\small
+\begin{thebibliography}{99}
+\setlength{\itemsep}{5pt}
+\bibitem[Fazelpour and Danks(2021)]{fazelpour2021} Fazelpour, S., \& Danks, D. (2021). Algorithmic bias: Senses, sources, solutions. \textit{Philosophy Compass, 16}(8), e12760. \url{https://doi.org/10.1111/phc3.12760}.
+\bibitem[Gutierrez and G\'{e}rardy(2017)]{gutierrez2017} Gutierrez, P., \& G\'{e}rardy, J.-Y. (2017). Causal inference and uplift modelling: A review of the literature. \textit{Proceedings of Machine Learning Research, 67}, 1--13. \url{https://proceedings.mlr.press/v67/gutierrez17a.html}.
+\bibitem[IBM(2019)]{ibm2019} IBM. (2019). \textit{Telco customer churn (11.1.3+)}. IBM Cognos Analytics Samples Team. \url{https://community.ibm.com/community/user/blogs/steven-macko/2019/07/11/telco-customer-churn-1113}.
+\bibitem[Microsoft(2026a)]{adf} Microsoft. (n.d.). \textit{Azure Data Factory documentation}. Microsoft Learn. Retrieved September 20, 2026, from \url{https://learn.microsoft.com/en-us/azure/data-factory/}.
+\bibitem[Microsoft(2026b)]{azurebatch} Microsoft. (n.d.). \textit{Batch endpoints}. Azure Machine Learning. Microsoft Learn. Retrieved September 20, 2026, from \url{https://learn.microsoft.com/en-us/azure/machine-learning/concept-endpoints-batch?view=azureml-api-2}.
+\bibitem[Microsoft(2026c)]{featurestore} Microsoft. (n.d.). \textit{Databricks Feature Store}. Azure Databricks. Microsoft Learn. Retrieved September 20, 2026, from \url{https://learn.microsoft.com/en-us/azure/databricks/machine-learning/feature-store/}.
+\bibitem[Microsoft(2026d)]{mlflowazure} Microsoft. (n.d.). \textit{Manage models registry with MLflow}. Azure Machine Learning. Microsoft Learn. Retrieved September 20, 2026, from \url{https://learn.microsoft.com/en-us/azure/machine-learning/how-to-manage-models-mlflow?view=azureml-api-2}.
+\bibitem[Microsoft(2026e)]{managedidentity} Microsoft. (n.d.). \textit{Managed identities for Azure resources}. Microsoft Learn. Retrieved September 20, 2026, from \url{https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/overview-for-developers}.
+\bibitem[Microsoft(2026f)]{keyvault} Microsoft. (n.d.). \textit{Secure your Azure Key Vault secrets}. Microsoft Learn. Retrieved September 20, 2026, from \url{https://learn.microsoft.com/en-us/azure/key-vault/secrets/secure-secrets}.
+\bibitem[Mitchell et al.(2019)]{mitchell2019} Mitchell, M., Wu, S., Zaldivar, A., Barnes, P., Vasserman, L., Hutchinson, B., Spitzer, E., Raji, I. D., \& Gebru, T. (2019). Model cards for model reporting. \textit{Proceedings of the Conference on Fairness, Accountability, and Transparency}, 220--229. \url{https://doi.org/10.1145/3287560.3287596}.
+\bibitem[Niculescu-Mizil and Caruana(2005)]{niculescu2005} Niculescu-Mizil, A., \& Caruana, R. (2005). Predicting good probabilities with supervised learning. \textit{Proceedings of the 22nd International Conference on Machine Learning}, 625--632. \url{https://doi.org/10.1145/1102351.1102430}.
+\bibitem[Saito and Rehmsmeier(2015)]{saito2015} Saito, T., \& Rehmsmeier, M. (2015). The precision-recall plot is more informative than the ROC plot when evaluating binary classifiers on imbalanced datasets. \textit{PLOS ONE, 10}(3), e0118432. \url{https://doi.org/10.1371/journal.pone.0118432}.
+\end{thebibliography}
+\newpage
+\appendix
+\section{Selected Verbatim AI Prompt Evidence}
+
+The detailed project AI log should be submitted with the supporting artifacts. The following prompts are reproduced verbatim because they are available directly from the project conversation history.
+
+\subsection*{Project brief review}
+\begin{quote}\small
+I've attached my final project and a brief I'd like to stick to in drafting this. Review both documents and flag any anomaly before we start drafting the final project.
+\end{quote}
+
+\subsection*{Architecture refinement}
+\begin{quote}\small
+architecture diagram looks too noisy. I need a standard scientific paper type diagram that is academically acceptable. Not AI slop.
+\end{quote}
+
+Where an interaction consisted primarily of terminal output, screenshots, or short continuation messages rather than a substantive written prompt, the AI log describes the interaction honestly instead of reconstructing a polished prompt after the fact. Claude is disclosed for the initial brief and final review. Exact Claude prompt text is not reproduced here because it was not retained in this conversation record; no prompt was reconstructed after the fact.
+
+
+
+\end{document}

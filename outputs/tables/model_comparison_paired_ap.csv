@@ -1,0 +1,3 @@
+best_mean_model,comparison_model,mean_ap_difference,sd_paired_difference,practical_tie
+logistic_regression,hist_gradient_boosting,0.012399569081016656,0.013514023191734179,True
+logistic_regression,ann,0.0016185189844717914,0.009056227353856678,True

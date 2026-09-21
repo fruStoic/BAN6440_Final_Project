@@ -1,0 +1,31 @@
+feature_index,feature_name
+0,SeniorCitizen
+1,tenure
+2,MonthlyCharges
+3,TotalCharges
+4,gender_Male
+5,Partner_Yes
+6,Dependents_Yes
+7,PhoneService_Yes
+8,MultipleLines_No phone service
+9,MultipleLines_Yes
+10,InternetService_Fiber optic
+11,InternetService_No
+12,OnlineSecurity_No internet service
+13,OnlineSecurity_Yes
+14,OnlineBackup_No internet service
+15,OnlineBackup_Yes
+16,DeviceProtection_No internet service
+17,DeviceProtection_Yes
+18,TechSupport_No internet service
+19,TechSupport_Yes
+20,StreamingTV_No internet service
+21,StreamingTV_Yes
+22,StreamingMovies_No internet service
+23,StreamingMovies_Yes
+24,Contract_One year
+25,Contract_Two year
+26,PaperlessBilling_Yes
+27,PaymentMethod_Credit card (automatic)
+28,PaymentMethod_Electronic check
+29,PaymentMethod_Mailed check

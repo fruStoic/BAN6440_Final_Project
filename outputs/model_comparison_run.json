@@ -1,0 +1,39 @@
+{
+  "created_utc": "2026-09-20T22:16:16.525006+00:00",
+  "scope": "development_only",
+  "development_rows": 5634,
+  "development_churn": 1495,
+  "cv": {
+    "splits": 5,
+    "repeats": 3,
+    "total_outer_folds": 15,
+    "random_state": 20260920
+  },
+  "classification_threshold": 0.5,
+  "primary_metric": "average_precision",
+  "models": {
+    "majority": {
+      "description": "Predict non-churn; training-fold churn prevalence used as constant probability."
+    },
+    "logistic_regression": {
+      "solver": "lbfgs",
+      "max_iter": 2000
+    },
+    "hist_gradient_boosting": {
+      "learning_rate": 0.1,
+      "max_iter": 100,
+      "max_leaf_nodes": 31,
+      "l2_regularization": 0.0,
+      "early_stopping": false
+    },
+    "ann": {
+      "architecture": "30 -> 32 ReLU -> Dropout(0.30) -> 16 ReLU -> 1 sigmoid",
+      "optimizer": "SGD",
+      "learning_rate": 0.01,
+      "batch_size": 32,
+      "max_epochs": 150,
+      "early_stopping_patience": 10,
+      "inner_validation_fraction": 0.15
+    }
+  }
+}

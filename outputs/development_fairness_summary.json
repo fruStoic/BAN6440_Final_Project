@@ -1,0 +1,26 @@
+{
+  "gender": {
+    "groups": [
+      "Female",
+      "Male"
+    ],
+    "selection_rate_range": 0.002239537479919007,
+    "precision_range": 0.02042616982546308,
+    "recall_range": 0.0003847874720358524,
+    "fpr_range": 0.0044177900395517,
+    "fnr_range": 0.0003847874720357969,
+    "calibration_gap_range": 0.007307422128045027
+  },
+  "SeniorCitizen": {
+    "groups": [
+      "0",
+      "1"
+    ],
+    "selection_rate_range": 0.23158717700571213,
+    "precision_range": 0.0486950175397417,
+    "recall_range": 0.12267080745341619,
+    "fpr_range": 0.16800745890474392,
+    "fnr_range": 0.12267080745341613,
+    "calibration_gap_range": 0.026930310003195845
+  }
+}

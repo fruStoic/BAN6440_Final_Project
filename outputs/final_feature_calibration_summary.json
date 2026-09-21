@@ -1,0 +1,23 @@
+{
+  "scope": "development_oof_final_feature_set",
+  "excluded_predictors": [
+    "gender",
+    "SeniorCitizen"
+  ],
+  "uncalibrated": {
+    "brier": 0.13582751227567563,
+    "average_precision": 0.656294684230618,
+    "roc_auc": 0.8441018260918047,
+    "selected_at_0_40": 1682,
+    "selected_percent": 0.2985445509407171
+  },
+  "calibrated": {
+    "brier": 0.13586768286605677,
+    "average_precision": 0.6557240671678278,
+    "roc_auc": 0.8440803322018066,
+    "selected_at_0_40": 1674,
+    "selected_percent": 0.2971246006389776
+  },
+  "brier_change": 4.0170590381138904e-05,
+  "selection_count_change": -8
+}

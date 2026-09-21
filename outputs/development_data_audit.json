@@ -1,0 +1,58 @@
+{
+  "scope": "development_only",
+  "rows": 5634,
+  "columns_raw": 21,
+  "predictors_raw": 19,
+  "target": {
+    "no_churn": 4139,
+    "churn": 1495,
+    "churn_rate": 0.2653532126375577
+  },
+  "TotalCharges": {
+    "raw_blank_strings": 8,
+    "blank_with_tenure_zero": 8,
+    "clean_missing": 0,
+    "minimum_after_cleaning": 0.0,
+    "maximum_after_cleaning": 8684.8
+  },
+  "feature_groups": {
+    "numeric": [
+      "SeniorCitizen",
+      "tenure",
+      "MonthlyCharges",
+      "TotalCharges"
+    ],
+    "categorical": [
+      "gender",
+      "Partner",
+      "Dependents",
+      "PhoneService",
+      "MultipleLines",
+      "InternetService",
+      "OnlineSecurity",
+      "OnlineBackup",
+      "DeviceProtection",
+      "TechSupport",
+      "StreamingTV",
+      "StreamingMovies",
+      "Contract",
+      "PaperlessBilling",
+      "PaymentMethod"
+    ],
+    "numeric_count": 4,
+    "categorical_count": 15
+  },
+  "internet_service_redundancy": {
+    "internet_service_no_count": 1227,
+    "service_alignment": {
+      "OnlineSecurity": true,
+      "OnlineBackup": true,
+      "DeviceProtection": true,
+      "TechSupport": true,
+      "StreamingTV": true,
+      "StreamingMovies": true
+    }
+  },
+  "totalcharges_vs_tenure_x_monthlycharges_correlation": 0.9995623429431265,
+  "outlier_policy": "IQR audit only. Extreme observations are retained unless shown to be invalid customer records."
+}

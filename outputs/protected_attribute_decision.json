@@ -1,0 +1,11 @@
+{
+  "protected_attributes": [
+    "gender",
+    "SeniorCitizen"
+  ],
+  "mean_full_minus_reduced_ap": -0.0027280624663695483,
+  "sd_paired_ap_difference": 0.003989012046539842,
+  "practical_tie": true,
+  "decision": "drop_gender_and_SeniorCitizen",
+  "reason": "The reduced feature set is practically tied with the full feature set under the pre-registered paired PR-AUC rule. The explicit demographic attributes are therefore removed."
+}

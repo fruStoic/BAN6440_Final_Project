@@ -1,0 +1,6 @@
+{
+  "opened_utc": "2026-09-20T23:20:42.449769+00:00",
+  "status": "FINAL_HOLDOUT_OPENED",
+  "pipeline_freeze_sha256": "82ee5965232fd3eff8ab564672a3e066168b58e4c3f2498260b2e8e86347d407",
+  "rule": "No model, preprocessing, calibration, feature or threshold changes permitted after this timestamp."
+}
