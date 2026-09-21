@@ -62,7 +62,7 @@
 \vspace{0.5in}
 {\large Emmanuel Fru\par}
 \vfill
-{\large September 2026\par}
+{\large September 20, 2026\par}
 \vspace{0.18in}
 {\small\textbf{Project repository:} \href{https://github.com/fruStoic/BAN6440_Final_Project}{github.com/fruStoic/BAN6440\_Final\_Project}\par}
 \vspace{0.3in}
@@ -137,6 +137,24 @@ The development set was used for model comparison, calibration assessment, demog
 \subsection{Missing values, types, and outliers}
 
 The main data-quality issue was \code{TotalCharges}, which was stored as text. The final-project development audit found eight blank values; every blank occurred where \code{tenure = 0}. The rule was therefore deterministic: strip whitespace, convert valid values to numeric, verify that blank values occur only at zero tenure, and assign those blanks to zero. No rows were dropped and no statistical imputation was used.
+
+\begin{table}[H]
+\centering\small
+\caption{Development data quality before and after deterministic cleaning}
+\begin{tabular}{lcc}
+\toprule
+Check & Before cleaning & After cleaning \\
+\midrule
+Rows & 5,634 & 5,634 \\
+\code{TotalCharges} representation & Text & Numeric \\
+Blank \code{TotalCharges} values & 8 & 0 \\
+Blank values with positive tenure & 0 & 0 \\
+Rows removed during cleaning & 0 & 0 \\
+IQR-flagged outliers removed & 0 & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+\takeaway{Cleaning corrected the known \code{TotalCharges} type issue without dropping customers, imputing non-zero values, or removing valid extremes.}
 
 An IQR audit on \code{tenure}, \code{MonthlyCharges}, and \code{TotalCharges} found no values outside the 1.5-IQR bounds. No capping, winsorization, or outlier removal was applied. This avoids deleting valid high-value or long-tenure customers merely because they are statistically unusual.
 
@@ -222,16 +240,16 @@ Security controls include Entra ID RBAC, managed identities, TLS, encryption at 
 \subsection{Development model comparison}
 
 \begin{table}[H]
-\centering\small
+\centering\scriptsize
 \caption{Development model comparison across 15 matched folds}
 \begin{tabular}{lccccc}
 \toprule
-Model & PR-AUC & ROC-AUC & F1 & Accuracy & Brier \\
+Model & PR-AUC mean $\pm$ SD & ROC-AUC mean & F1 mean & Accuracy mean & Brier mean \\
 \midrule
-Majority baseline & 0.2654 & 0.5000 & 0.0000 & 0.7346 & 0.1949 \\
-Logistic regression & \textbf{0.6549} & \textbf{0.8437} & \textbf{0.5967} & \textbf{0.8041} & \textbf{0.1361} \\
-HistGradientBoosting & 0.6425 & 0.8339 & 0.5746 & 0.7949 & 0.1413 \\
-ANN & 0.6532 & 0.8414 & 0.5866 & 0.8014 & 0.1370 \\
+Majority baseline & 0.2654 $\pm$ 0.0001 & 0.5000 & 0.0000 & 0.7346 & 0.1949 \\
+Logistic regression & \textbf{0.6549 $\pm$ 0.0292} & \textbf{0.8437} & \textbf{0.5967} & \textbf{0.8041} & \textbf{0.1361} \\
+HistGradientBoosting & 0.6425 $\pm$ 0.0214 & 0.8339 & 0.5746 & 0.7949 & 0.1413 \\
+ANN & 0.6532 $\pm$ 0.0275 & 0.8414 & 0.5866 & 0.8014 & 0.1370 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -305,17 +323,19 @@ The most important management implication is therefore not that PR-AUC is approx
 
 The final model excludes \code{gender} and \code{SeniorCitizen} from prediction because ablation showed no meaningful performance loss. Their removal should not be interpreted as proof of fairness. ``Fairness through unawareness'' can fail because other variables may encode correlated information and because real-world group prevalences can differ \citep{fazelpour2021}. Both variables were therefore retained strictly for group-level monitoring.
 
+Calibration gap is reported as mean predicted churn probability minus observed churn rate within each group; negative values therefore indicate average under-prediction of group risk.
+
 \begin{table}[H]
 \centering\scriptsize
-\caption{Final holdout fairness audit}
-\begin{tabular}{llrrrrrr}
+\caption{Final holdout fairness audit at the 0.40 operating threshold}
+\begin{tabular}{llrrrrrrr}
 \toprule
-Attribute & Group & $n$ & Churn & Selected & Precision & Recall & FPR \\
+Attribute & Group & $n$ & Precision & Recall & FPR & FNR & Calibration gap & Brier \\
 \midrule
-Gender & Female & 722 & 26.18\% & 30.06\% & 58.99\% & 67.72\% & 16.70\% \\
-Gender & Male & 687 & 26.93\% & 28.68\% & 59.90\% & 63.78\% & 15.74\% \\
-SeniorCitizen & 0 & 1,168 & 22.77\% & 25.60\% & 55.18\% & 62.03\% & 14.86\% \\
-SeniorCitizen & 1 & 241 & 44.81\% & 47.72\% & 70.43\% & 75.00\% & 25.56\% \\
+Gender & Female & 722 & 0.5899 & 0.6772 & 0.1670 & 0.3228 & +0.0042 & 0.1332 \\
+Gender & Male & 687 & 0.5990 & 0.6378 & 0.1574 & 0.3622 & -0.0074 & 0.1381 \\
+SeniorCitizen & 0 & 1,168 & 0.5518 & 0.6203 & 0.1486 & 0.3797 & +0.0112 & 0.1270 \\
+SeniorCitizen & 1 & 241 & 0.7043 & 0.7500 & 0.2556 & 0.2500 & -0.0630 & 0.1773 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -373,46 +393,6 @@ The final holdout Brier score of 0.1356 is an initial reference, not a permanent
 
 The runbook should verify snapshot completion, schema checks, approved model version, row counts, score distribution, contact-list size, publication to CRM, treatment logging, fairness metrics, and monitoring alerts. The previous approved artifact remains available for rollback without reconstructing an earlier environment.
 
-\section{AI Usage Disclosure and Reflection}
-
-Generative AI was used as a development assistant, not as an autonomous evaluator. Claude was used to help create the initial project brief and for a final review of the completed work. ChatGPT was used more extensively for methodological review, Python development and debugging, interpretation of experimental outputs, architecture design, fairness and business-impact analysis, and drafting/refining the report and supporting documentation. Model training, testing, and the final holdout evaluation were executed locally.
-
-\subsection{Tools and specific applications}
-
-\begin{table}[H]
-\centering\scriptsize
-\caption{AI tools and their project roles}
-\begin{tabularx}{\textwidth}{p{0.16\textwidth}p{0.34\textwidth}Y}
-\toprule
-Tool & Specific use & Verification \\
-\midrule
-Claude & Initial project brief; final review of completed work & Compared against assignment requirements, project artifacts, and the final evidence set \\
-ChatGPT & Protocol review; Python code drafting/debugging; interpretation of CV, calibration, ablation, fairness, holdout and business outputs & Local execution, persisted CSV/JSON outputs, automated tests, manual recalculation \\
-ChatGPT & Azure architecture and interoperability planning; report, Model Card, README drafting & Primary-source verification and manual editing \\
-ChatGPT image generation & Architecture visual from an approved technical specification & First version rejected; second academic-style diagram manually reviewed and accepted \\
-\bottomrule
-\end{tabularx}
-\end{table}
-\takeaway{AI accelerated planning, implementation, review, and drafting, but empirical results and final methodological decisions remained tied to locally generated artifacts and pre-registered rules.}
-
-\subsection{Refinement episodes}
-
-\textbf{Episode 1: evaluation protocol.} The exact project-review prompt was: \emph{``I've attached my final project and a brief I'd like to stick to in drafting this. Review both documents and flag any anomaly before we start drafting the final project.''} The review identified that the Module 6 test set had already been inspected. The protocol was revised before experimentation to create a new persisted 80/20 split and reserve the 1,409-row holdout until freeze. The limitation that this is still the same underlying source dataset was retained explicitly.
-
-\textbf{Episode 2: model complexity and calibration.} Development outputs were supplied for interpretation rather than replaced with AI estimates. Logistic regression, HGB, and ANN were practically tied under the locked paired-fold rule, so logistic regression was selected for simplicity. Later, sigmoid calibration slightly worsened Brier score on both development and holdout data. Rather than search post hoc for another calibrator, the pre-specified method was retained and the failed hypothesis was reported.
-
-\textbf{Episode 3: post-holdout reporting bug.} After the one-time holdout run, AI review noticed that the classification summary selected 414 customers at 0.40 while the printed business summary selected 415. The discrepancy came from using the exact 0.398860 threshold inside the sensitivity function. The model was not retrained and the holdout was not rerun. A separate post-processing script recomputed the operational business result from immutable saved predictions, producing 414 selected customers and 47.28\% expected ROI.
-
-\textbf{Episode 4: architecture visual.} The first generated architecture graphic contained the right components but was visually dense. The exact refinement prompt was: \emph{``architecture diagram looks too noisy. I need a standard scientific paper type diagram that is academically acceptable. Not AI slop.''} The first visual was rejected and replaced by the simpler technical diagram used in Section 4.
-
-\subsection{Verification and reflection}
-
-Verification methods included local Python execution, persistent CSV/JSON artifacts, manual arithmetic checks, primary-source reference verification, frozen configuration artifacts, and an automated test suite. All 11 tests passed before the holdout was opened.
-
-The most useful AI interactions were often those that produced a correction rather than a finished answer. The evaluation protocol changed, the expected model ordering was not supported, the calibration hypothesis failed, removing demographic variables did not eliminate group disparities, a post-holdout reporting inconsistency was corrected without rerunning the model, and the first architecture visual was rejected. These cases reinforced that AI output should be treated as a draft, hypothesis, or review input rather than evidence. Responsibility for accepting methodological changes, interpreting results, and approving the final submission remained with the student.
-
-\takeaway{Responsible AI use in this project is demonstrated by traceable prompts, rejected outputs, failed hypotheses, independent verification, and preservation of the locked evaluation protocol.}
-
 \newpage
 \small
 \begin{thebibliography}{99}
@@ -430,24 +410,77 @@ The most useful AI interactions were often those that produced a correction rath
 \bibitem[Niculescu-Mizil and Caruana(2005)]{niculescu2005} Niculescu-Mizil, A., \& Caruana, R. (2005). Predicting good probabilities with supervised learning. \textit{Proceedings of the 22nd International Conference on Machine Learning}, 625--632. \url{https://doi.org/10.1145/1102351.1102430}.
 \bibitem[Saito and Rehmsmeier(2015)]{saito2015} Saito, T., \& Rehmsmeier, M. (2015). The precision-recall plot is more informative than the ROC plot when evaluating binary classifiers on imbalanced datasets. \textit{PLOS ONE, 10}(3), e0118432. \url{https://doi.org/10.1371/journal.pone.0118432}.
 \end{thebibliography}
-\newpage
+
+\clearpage
 \appendix
-\section{Selected Verbatim AI Prompt Evidence}
+\section{Submission Artifact Index}
 
-The detailed project AI log should be submitted with the supporting artifacts. The following prompts are reproduced verbatim because they are available directly from the project conversation history.
+This appendix is a navigation aid for the reviewer. The report body covers Sections 1--7 of the assignment. The files below are supplied separately in the submission ZIP so that each required artifact can be opened directly without searching through the report. References are embedded in this report immediately before the appendices.
 
-\subsection*{Project brief review}
-\begin{quote}\small
-I've attached my final project and a brief I'd like to stick to in drafting this. Review both documents and flag any anomaly before we start drafting the final project.
-\end{quote}
+\begin{table}[H]
+\centering\small
+\caption{Required submission artifacts and where to find them}
+\begin{tabularx}{\textwidth}{p{0.27\textwidth}p{0.34\textwidth}Y}
+\toprule
+Requirement & File / location & Contents \\
+\midrule
+Report & \path{FinalProject_Fru_Emmanuel.pdf} & Sections 1--7, references, and appendices \\
+Code / notebooks & \path{src/}, \path{tests/} & Runnable pipeline, evaluation scripts, and automated tests \\
+Pinned environment & \path{requirements.txt}, \path{requirements-lock.txt} & Declared and exact Python dependencies \\
+Run instructions & \path{README.md} & Environment setup and ordered reproduction steps \\
+Architecture diagram & \path{Architecture_Diagram_Fru_Emmanuel.png} & Standalone production architecture figure \\
+Metrics and evidence & \path{outputs/tables/}, \path{outputs/figures/} & Exported CSV tables and PNG plots supporting evaluation \\
+Model Card & \path{Model_Card_Fru_Emmanuel.pdf} & Intended use, limitations, performance, segment behavior, and monitoring \\
+AI Disclosure Form & \path{AI_Disclosure_Form_Final_Project_Emmanuel_Fru.docx} & Completed Nexford Final Project AI Disclosure Form \\
+Model / protocol artifacts & \path{outputs/models/}, \path{outputs/*.json} & Final model bundle, split lock, pipeline freeze, holdout and business outputs \\
+Repository & \url{https://github.com/fruStoic/BAN6440_Final_Project} & Public project repository \\
+\bottomrule
+\end{tabularx}
+\end{table}
+\takeaway{The ZIP root contains the reviewer-facing documents, while code and supporting evidence remain grouped in clearly named project folders.}
 
-\subsection*{Architecture refinement}
-\begin{quote}\small
-architecture diagram looks too noisy. I need a standard scientific paper type diagram that is academically acceptable. Not AI slop.
-\end{quote}
+\section{Evidence Crosswalk}
 
-Where an interaction consisted primarily of terminal output, screenshots, or short continuation messages rather than a substantive written prompt, the AI log describes the interaction honestly instead of reconstructing a polished prompt after the fact. Claude is disclosed for the initial brief and final review. Exact Claude prompt text is not reproduced here because it was not retained in this conversation record; no prompt was reconstructed after the fact.
+The following crosswalk links major claims in the report to the exported project artifacts used to verify them. These files are supporting evidence and are not substitutes for the narrative interpretation in Sections 1--7.
 
+\begin{longtable}{p{0.29\textwidth}p{0.64\textwidth}}
+\toprule
+Evidence area & Supporting artifact(s) \\
+\midrule
+\endfirsthead
+\toprule
+Evidence area & Supporting artifact(s) \\
+\midrule
+\endhead
+Split and protocol lock & \path{outputs/protocol_lock.json}; \path{outputs/split_manifest.json}; \path{outputs/split_assignments.csv} \\
+Data quality and outliers & \path{outputs/tables/development_data_quality.csv}; \path{outputs/tables/development_iqr_audit.csv}; \path{outputs/development_data_audit.json} \\
+Feature schema & \path{outputs/development_feature_schema.json}; \path{outputs/tables/development_feature_names.csv} \\
+Model comparison & \path{outputs/tables/model_comparison_fold_metrics.csv}; \path{outputs/tables/model_comparison_summary.csv}; \path{outputs/tables/paired_ap.csv}; \path{outputs/model_selection.json} \\
+Calibration & \path{outputs/final_feature_calibration_summary.json}; \path{outputs/figures/final_feature_development_reliability.png}; \path{outputs/figures/final_holdout_reliability.png} \\
+Protected-attribute ablation & \path{outputs/tables/protected_attribute_ablation_summary.csv}; \path{outputs/protected_attribute_decision.json} \\
+Fairness audit & \path{outputs/tables/final_holdout_fairness.csv} \\
+Pipeline freeze and preflight & \path{outputs/pipeline_freeze.json}; holdout preflight output; \path{tests/test_pipeline.py} \\
+Final holdout metrics & \path{outputs/final_holdout_results.json}; \path{outputs/tables/final_model_comparison.csv}; \path{outputs/tables/final_metric_confidence_intervals.csv} \\
+Final predictions & \path{outputs/tables/final_holdout_predictions.csv} \\
+Business decision evidence & \path{outputs/final_business_impact_operational.json}; \path{outputs/tables/business_sensitivity_grid.csv} \\
+Final model bundle & \path{outputs/models/final_model_bundle.joblib} \\
+Evaluation figures & \path{outputs/figures/final_confusion_matrix.png}; \path{outputs/figures/final_roc_comparison.png}; \path{outputs/figures/final_pr_comparison.png} \\
+\bottomrule
+\end{longtable}
 
+\takeaway{Every major quantitative claim in the report can be traced to a saved output artifact, while the sealed holdout, corrected business calculation, and final model remain separately identifiable.}
+
+\section{Reviewer Quick Start}
+
+For a fast review after unzipping the submission, the recommended order is:
+\begin{enumerate}
+    \item Open \path{FinalProject_Fru_Emmanuel.pdf} for the main Sections 1--7 narrative and references.
+    \item Open \path{Architecture_Diagram_Fru_Emmanuel.png} and \path{Model_Card_Fru_Emmanuel.pdf} for the standalone required artifacts.
+    \item Open \path{AI_Disclosure_Form_Final_Project_Emmanuel_Fru.docx} for the required AI disclosure.
+    \item Use \path{README.md} for reproduction instructions, then inspect \path{outputs/tables/} and \path{outputs/figures/} for supporting metrics and plots.
+    \item Use the public GitHub repository if source inspection outside the ZIP is preferred.
+\end{enumerate}
+
+The appendices are provided only to make the submission package easier to navigate. They do not add new experimental results or alter any decision made before the final holdout was opened.
 
 \end{document}

@@ -614,7 +614,6 @@ The project submission includes:
 - architecture diagram;
 - Model Card;
 - AI Usage Disclosure;
-- detailed AI interaction log;
 - model evaluation tables;
 - business analysis;
 - fairness evidence;
