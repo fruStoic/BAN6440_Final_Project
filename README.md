@@ -1,1184 +1,630 @@
-\# BAN6440 Final Project  
+# BAN6440 Final Project
 
-\## End-to-End ML Architecture \& Interoperability Proposal
+## End-to-End Machine Learning Architecture & Interoperability Proposal
 
+**Student:** Emmanuel Fru  
+**Course:** BAN6440 Machine Learning  
+**Project:** Telecom Churn Retention Decision System  
+**Repository:** https://github.com/fruStoic/BAN6440_Final_Project
 
+---
 
-\*\*Student:\*\* Emmanuel Fru  
+## 1. Project Overview
 
-\*\*Course:\*\* BAN6440 Machine Learning  
+This project develops an end-to-end machine learning decision system for telecommunications customer churn.
 
-\*\*Project:\*\* Telecom Churn Retention Decision System
+The objective is not only to predict whether a customer is likely to churn, but to determine when the estimated churn probability is high enough to justify a retention intervention.
 
+The project extends the earlier Module 6 churn-classification work by adding:
 
+- a fresh development and holdout protocol;
+- repeated cross-validation;
+- model comparison;
+- probability calibration;
+- protected-attribute ablation;
+- fairness analysis;
+- an economically derived intervention threshold;
+- business-impact analysis;
+- a production deployment architecture;
+- model governance and monitoring;
+- reproducibility controls.
 
-\## 1. Project Overview
+The final selected model is **logistic regression** with **sigmoid calibration** and a fixed operational threshold of **0.40**.
 
+---
 
-
-This project develops an end-to-end machine-learning decision system for telecommunications customer churn.
-
-
-
-The objective is not only to predict churn, but to determine when a customer's estimated churn probability is high enough to justify a retention intervention.
-
-
-
-The project extends the Module 6 churn-classification work by adding:
-
-
-
-\- fresh development and holdout protocol;
-
-\- repeated cross-validation;
-
-\- model comparison;
-
-\- probability calibration;
-
-\- protected-attribute ablation;
-
-\- fairness analysis;
-
-\- economically derived decision threshold;
-
-\- business-impact analysis;
-
-\- deployment architecture;
-
-\- model governance and monitoring;
-
-\- reproducibility controls.
-
-
-
-The final selected model is a \*\*logistic regression classifier\*\* with sigmoid probability calibration and a fixed operational threshold of \*\*0.40\*\*.
-
-
-
-\---
-
-
-
-\## 2. Dataset
-
-
+## 2. Dataset
 
 The project uses:
 
-
-
 ```text
-
 data/teleconnect.csv
-
 ```
 
+### Dataset summary
 
+| Item | Value |
+|---|---:|
+| Total rows | 7,043 |
+| Total columns | 21 |
+| Churn customers | 1,869 |
+| Churn prevalence | 26.54% |
+| Development rows | 5,634 |
+| Final holdout rows | 1,409 |
 
-Dataset summary:
-
-
-
-```text
-
-Rows:                 7,043
-
-Columns:              21
-
-Churn customers:      1,869
-
-Churn prevalence:     26.54%
-
-Development rows:     5,634
-
-Final holdout rows:   1,409
-
-```
-
-
-
-The final project uses a fixed stratified split with:
-
-
+The final project uses a fixed stratified 80/20 split with:
 
 ```text
-
 Random seed: 20260920
-
 Development: 80%
-
 Holdout:     20%
-
 ```
 
+The split assignments are saved permanently and are not regenerated during the workflow.
 
+---
 
-The holdout split is stored permanently and is not regenerated during model execution.
+## 3. Final Model
 
+| Component | Final specification |
+|---|---|
+| Model | Logistic Regression |
+| Calibration | Sigmoid |
+| Operational threshold | 0.40 |
+| Raw predictive inputs | 17 |
+| Encoded features | 28 |
+| Primary selection metric | PR-AUC / Average Precision |
+| Deployment mode | Weekly batch scoring |
 
-
-\---
-
-
-
-\## 3. Final Model
-
-
-
-The final predictive system uses:
-
-
-
-```text
-
-Model:                  Logistic Regression
-
-Calibration:            Sigmoid
-
-Operating threshold:    0.40
-
-Raw predictive inputs:  17
-
-Encoded features:       28
-
-```
-
-
-
-The following variables are excluded from predictive inputs:
-
-
+The following variables are **excluded from predictive inputs**:
 
 ```text
-
 gender
-
 SeniorCitizen
-
 ```
 
+They are retained separately for fairness auditing.
 
+---
 
-They are retained only for fairness auditing.
-
-
-
-\---
-
-
-
-\## 4. Project Structure
-
-
+## 4. Project Structure
 
 ```text
-
-BAN6440\_Final\_Project/
-
+BAN6440_Final_Project/
 │
-
 ├── data/
-
 │   └── teleconnect.csv
-
 │
-
 ├── src/
-
-│   ├── \_\_init\_\_.py
-
+│   ├── __init__.py
 │   ├── config.py
-
-│   ├── data\_loader.py
-
-│   ├── create\_final\_project\_split.py
-
-│   ├── data\_audit.py
-
+│   ├── data_loader.py
+│   ├── create_final_project_split.py
+│   ├── data_audit.py
 │   ├── preprocessing.py
-
-│   ├── preprocessing\_check.py
-
-│   ├── model\_comparison.py
-
+│   ├── preprocessing_check.py
+│   ├── model_comparison.py
 │   ├── calibration.py
-
-│   ├── demographic\_ablation.py
-
-│   ├── final\_feature\_calibration.py
-
-│   ├── fairness\_analysis.py
-
-│   ├── freeze\_pipeline.py
-
-│   ├── holdout\_preflight.py
-
-│   ├── final\_evaluation.py
-
-│   └── final\_business\_postprocess.py
-
+│   ├── demographic_ablation.py
+│   ├── final_feature_calibration.py
+│   ├── fairness_analysis.py
+│   ├── freeze_pipeline.py
+│   ├── holdout_preflight.py
+│   ├── final_evaluation.py
+│   └── final_business_postprocess.py
 │
-
 ├── tests/
-
-│   └── test\_pipeline.py
-
+│   └── test_pipeline.py
 │
-
 ├── outputs/
-
 │   ├── figures/
-
 │   ├── tables/
-
 │   ├── models/
-
-│   ├── protocol\_lock.json
-
-│   ├── split\_manifest.json
-
-│   ├── split\_assignments.csv
-
-│   ├── pipeline\_freeze.json
-
-│   ├── final\_holdout\_results.json
-
-│   └── final\_business\_impact\_operational.json
-
+│   ├── protocol_lock.json
+│   ├── split_manifest.json
+│   ├── split_assignments.csv
+│   ├── pipeline_freeze.json
+│   ├── final_holdout_results.json
+│   └── final_business_impact_operational.json
 │
-
 ├── docs/
-
-│   └── model\_card.md
-
+│   └── model_card.md
 │
-
 ├── report/
-
 │
-
 ├── requirements.txt
-
 ├── requirements-lock.txt
-
 └── README.md
-
 ```
 
+---
 
+## 5. Environment Setup
 
-\---
+The project was developed with **Python 3.11.9**.
 
-
-
-\## 5. Environment Setup
-
-
-
-The project was developed using:
-
-
-
-```text
-
-Python 3.11.9
-
-```
-
-
-
-Create and activate a virtual environment.
-
-
-
-\### Windows PowerShell
-
-
+### Create a virtual environment
 
 ```powershell
-
 python -m venv .venv
-
 ```
-
-
 
 If PowerShell blocks activation:
 
-
-
 ```powershell
-
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-
 ```
 
-
-
-Activate:
-
-
+Activate the environment:
 
 ```powershell
-
-.\\.venv\\Scripts\\Activate.ps1
-
+.\.venv\Scripts\Activate.ps1
 ```
-
-
 
 Install dependencies:
 
-
-
 ```powershell
-
 pip install -r requirements.txt
-
 ```
 
-
-
-For exact reproducibility:
-
-
+For exact environment reproduction:
 
 ```powershell
-
 pip install -r requirements-lock.txt
-
 ```
 
+---
 
-
-\---
-
-
-
-\## 6. Main Dependencies
-
-
+## 6. Main Dependencies
 
 The project uses:
 
-
-
 ```text
-
 pandas
-
 numpy
-
 scikit-learn
-
 scipy
-
 matplotlib
-
 tensorflow
-
 joblib
-
 pytest
-
 ```
 
-
-
-The exact installed package versions are stored in:
-
-
+Exact installed package versions are stored in:
 
 ```text
-
 requirements-lock.txt
-
 ```
 
+---
 
-
-\---
-
-
-
-\## 7. Reproducibility Sequence
-
-
+## 7. Reproducibility Workflow
 
 The project was executed in a controlled sequence.
 
-
-
-\### Step 1: Create the permanent final-project split
-
-
+### Step 1: Create the permanent project split
 
 ```powershell
-
-python -m src.create\_final\_project\_split
-
+python -m src.create_final_project_split
 ```
 
-
-
-This creates:
-
-
+Creates:
 
 ```text
-
-outputs/protocol\_lock.json
-
-outputs/split\_manifest.json
-
-outputs/split\_assignments.csv
-
+outputs/protocol_lock.json
+outputs/split_manifest.json
+outputs/split_assignments.csv
 ```
 
+> Do not regenerate the split after creation.
 
+---
 
-The split should not be regenerated after creation.
-
-
-
-\---
-
-
-
-\### Step 2: Audit development data
-
-
+### Step 2: Audit development data
 
 ```powershell
-
-python -m src.data\_audit
-
+python -m src.data_audit
 ```
 
+Produces development-only data-quality and IQR audit evidence.
 
+---
 
-This produces development-only quality and outlier evidence.
-
-
-
-\---
-
-
-
-\### Step 3: Check preprocessing
-
-
+### Step 3: Validate preprocessing
 
 ```powershell
-
-python -m src.preprocessing\_check
-
+python -m src.preprocessing_check
 ```
 
+Checks:
 
+- feature counts;
+- encoded schema;
+- numeric scaling;
+- missing values;
+- finite transformed values.
 
-This validates:
+---
 
+### Step 4: Compare candidate models
 
+```powershell
+python -m src.model_comparison
+```
+
+Models compared:
 
 ```text
-
-feature counts
-
-encoded schema
-
-scaling
-
-missing values
-
-finite values
-
-```
-
-
-
-\---
-
-
-
-\### Step 4: Compare candidate models
-
-
-
-```powershell
-
-python -m src.model\_comparison
-
-```
-
-
-
-The compared models are:
-
-
-
-```text
-
 Majority baseline
-
 Logistic Regression
-
 HistGradientBoosting
-
 Module 6 ANN
-
 ```
-
-
 
 Model selection uses mean PR-AUC with a pre-registered practical-tie rule.
 
+---
 
-
-\---
-
-
-
-\### Step 5: Evaluate calibration
-
-
+### Step 5: Evaluate calibration
 
 ```powershell
-
 python -m src.calibration
-
 ```
-
-
 
 Sigmoid calibration was specified before results were observed.
 
+---
 
-
-\---
-
-
-
-\### Step 6: Run protected-attribute ablation
-
-
+### Step 6: Run protected-attribute ablation
 
 ```powershell
-
-python -m src.demographic\_ablation
-
+python -m src.demographic_ablation
 ```
 
-
-
-This compares logistic regression with and without:
-
-
+Compares logistic regression with and without:
 
 ```text
-
 gender
-
 SeniorCitizen
-
 ```
 
+---
 
-
-\---
-
-
-
-\### Step 7: Evaluate the final reduced feature set
-
-
+### Step 7: Evaluate the final reduced feature set
 
 ```powershell
-
-python -m src.final\_feature\_calibration
-
+python -m src.final_feature_calibration
 ```
 
+---
 
-
-\---
-
-
-
-\### Step 8: Run development fairness audit
-
-
+### Step 8: Run the development fairness audit
 
 ```powershell
-
-python -m src.fairness\_analysis
-
+python -m src.fairness_analysis
 ```
-
-
 
 Fairness is assessed separately for:
 
-
-
 ```text
-
 gender
-
 SeniorCitizen
-
 ```
 
+---
 
-
-\---
-
-
-
-\### Step 9: Freeze the pipeline
-
-
+### Step 9: Freeze the pipeline
 
 ```powershell
-
-python -m src.freeze\_pipeline
-
+python -m src.freeze_pipeline
 ```
 
+This records the final:
 
+- model;
+- feature policy;
+- calibration method;
+- operational threshold.
 
-This records the final model, feature policy, calibration method, and decision threshold.
+---
 
-
-
-\---
-
-
-
-\### Step 10: Run automated tests
-
-
+### Step 10: Run automated tests
 
 ```powershell
-
 pytest -q
-
 ```
-
-
 
 Final pre-holdout result:
 
-
-
 ```text
-
 11 passed
-
 ```
 
+---
 
-
-\---
-
-
-
-\### Step 11: Run holdout preflight
-
-
+### Step 11: Run holdout preflight
 
 ```powershell
-
-python -m src.holdout\_preflight
-
+python -m src.holdout_preflight
 ```
 
+The preflight confirms that:
 
+- no previous final holdout evaluation exists;
+- required frozen artifacts are present;
+- artifact hashes are unchanged;
+- the expected 5,634 / 1,409 split is intact;
+- the final feature policy is unchanged.
 
-The preflight checks that the frozen artifacts have not changed and that no previous holdout evaluation exists.
+---
 
+### Step 12: Run final holdout evaluation
 
-
-\---
-
-
-
-\### Step 12: Final holdout evaluation
-
-
-
-This command is intended to be run once only:
-
-
+This command is intended to be run **once only**:
 
 ```powershell
-
-python -m src.final\_evaluation
-
+python -m src.final_evaluation
 ```
 
+The script creates a holdout-open marker before loading the final holdout.
 
+> No model tuning, feature selection, calibration-method selection, or threshold optimization is permitted after this stage.
 
-The script creates a holdout-open marker before loading the final holdout and prevents repeat final evaluations.
+---
 
+### Step 13: Recompute operational business output at 0.40
 
+The original final-evaluation business summary used the exact economic threshold of 0.398860, while the pre-registered operational threshold was 0.40.
 
-No model tuning is permitted after this stage.
+The holdout was **not rerun**.
 
-
-
-\---
-
-
-
-\### Step 13: Operational business post-processing
-
-
-
-The original final-evaluation output used the exact economic threshold in one business-summary function even though the pre-registered operational threshold was 0.40.
-
-
-
-The model was not retrained and the holdout was not rerun.
-
-
-
-The corrected operational business result was calculated directly from the immutable saved holdout predictions:
-
-
+The corrected operational result was calculated directly from the saved immutable holdout predictions:
 
 ```powershell
-
-python -m src.final\_business\_postprocess
-
+python -m src.final_business_postprocess
 ```
 
-
-
-The result is stored in:
-
-
+The corrected result is saved in:
 
 ```text
-
-outputs/final\_business\_impact\_operational.json
-
+outputs/final_business_impact_operational.json
 ```
 
+---
 
-
-\---
-
-
-
-\## 8. Final Holdout Results
-
-
+## 8. Final Holdout Results
 
 At the fixed 0.40 threshold:
 
+| Metric | Result |
+|---|---:|
+| Accuracy | 0.7899 |
+| Precision | 0.5942 |
+| Recall | 0.6578 |
+| F1 | 0.6244 |
+| PR-AUC | 0.6484 |
+| ROC-AUC | 0.8470 |
+| Brier score | 0.1356 |
 
-
-```text
-
-Accuracy:        0.7899
-
-Precision:       0.5942
-
-Recall:          0.6578
-
-F1:              0.6244
-
-PR-AUC:          0.6484
-
-ROC-AUC:         0.8470
-
-Brier score:     0.1356
-
-```
-
-
-
-Confusion matrix:
-
-
+### Confusion matrix
 
 ```text
-
 TN = 867
-
 FP = 168
-
 FN = 128
-
 TP = 246
-
 ```
 
-
-
-Selected customers:
-
-
+### Selected customers
 
 ```text
-
 414 / 1,409
-
 29.38%
-
 ```
 
+---
 
+## 9. Business Decision Rule
 
-\---
-
-
-
-\## 9. Business Decision Rule
-
-
-
-The intervention rule is:
-
-
+A customer is selected for intervention when:
 
 ```text
-
-Contact customer if calibrated churn probability >= 0.40
-
+calibrated churn probability >= 0.40
 ```
 
-
-
-The exact economic break-even probability is:
-
-
+The exact economic break-even threshold is:
 
 ```text
-
 0.398860
-
 ```
 
-
-
-The operational threshold was pre-registered as:
-
-
+The pre-registered operational threshold is:
 
 ```text
-
 0.40
-
 ```
 
+### Base-case assumptions
 
+| Assumption | Value |
+|---|---:|
+| Contact cost | $2 |
+| Offer cost | $65 |
+| Offer acceptance probability | 40% |
+| Incremental retention uplift | 15% |
+| Contribution margin rate | 30% |
+| Monthly revenue proxy | $65 |
+| Value horizon | 24 months |
 
-Base-case assumptions:
+These values are **planning assumptions**, not dataset facts.
 
+### Operational holdout result
 
+| Business measure | Result |
+|---|---:|
+| Selected customers | 414 |
+| Selected share | 29.38% |
+| Expected prevented churn | 36.48 |
+| Campaign cost | $11,592.00 |
+| Expected benefit | $17,073.27 |
+| Expected net value | $5,481.27 |
+| Expected ROI | 47.28% |
+
+These are **model-based expected values**, not realized financial outcomes.
+
+---
+
+## 10. Key Output Artifacts
+
+### Protocol and model decisions
 
 ```text
-
-Contact cost:                   $2
-
-Offer cost:                     $65
-
-Offer acceptance probability:   40%
-
-Incremental retention uplift:   15%
-
-Contribution margin rate:       30%
-
-Monthly revenue proxy:          $65
-
-Value horizon:                  24 months
-
+outputs/protocol_lock.json
+outputs/split_manifest.json
+outputs/pipeline_freeze.json
 ```
 
-
-
-These are planning assumptions rather than dataset facts.
-
-
-
-Operational holdout result:
-
-
+### Model evaluation
 
 ```text
-
-Selected customers:       414
-
-Expected prevented churn: 36.48
-
-Campaign cost:            $11,592.00
-
-Expected benefit:         $17,073.27
-
-Expected net value:       $5,481.27
-
-Expected ROI:             47.28%
-
+outputs/final_holdout_results.json
+outputs/tables/final_model_comparison.csv
+outputs/tables/final_metric_confidence_intervals.csv
 ```
 
-
-
-These are expected values, not realized financial outcomes.
-
-
-
-\---
-
-
-
-\## 10. Key Output Artifacts
-
-
-
-\### Protocol and model decisions
-
-
+### Holdout predictions
 
 ```text
-
-outputs/protocol\_lock.json
-
-outputs/split\_manifest.json
-
-outputs/pipeline\_freeze.json
-
+outputs/tables/final_holdout_predictions.csv
 ```
 
-
-
-\### Model evaluation
-
-
+### Fairness analysis
 
 ```text
-
-outputs/final\_holdout\_results.json
-
-outputs/tables/final\_model\_comparison.csv
-
-outputs/tables/final\_metric\_confidence\_intervals.csv
-
+outputs/tables/final_holdout_fairness.csv
 ```
 
-
-
-\### Holdout predictions
-
-
+### Business analysis
 
 ```text
-
-outputs/tables/final\_holdout\_predictions.csv
-
+outputs/tables/business_sensitivity_grid.csv
+outputs/final_business_impact.json
+outputs/final_business_impact_operational.json
 ```
 
-
-
-\### Fairness
-
-
+### Final model artifact
 
 ```text
-
-outputs/tables/final\_holdout\_fairness.csv
-
+outputs/models/final_model_bundle.joblib
 ```
 
-
-
-\### Business analysis
-
-
+### Figures
 
 ```text
-
-outputs/tables/business\_sensitivity\_grid.csv
-
-outputs/final\_business\_impact.json
-
-outputs/final\_business\_impact\_operational.json
-
+outputs/figures/final_confusion_matrix.png
+outputs/figures/final_roc_comparison.png
+outputs/figures/final_pr_comparison.png
+outputs/figures/final_holdout_reliability.png
 ```
 
+---
 
-
-\### Model artifact
-
-
-
-```text
-
-outputs/models/final\_model\_bundle.joblib
-
-```
-
-
-
-\### Figures
-
-
-
-```text
-
-outputs/figures/final\_confusion\_matrix.png
-
-outputs/figures/final\_roc\_comparison.png
-
-outputs/figures/final\_pr\_comparison.png
-
-outputs/figures/final\_holdout\_reliability.png
-
-```
-
-
-
-\---
-
-
-
-\## 11. Important Methodological Restrictions
-
-
+## 11. Evaluation Restrictions
 
 The final holdout must not be used for:
 
-
-
-```text
-
-hyperparameter tuning
-
-feature selection
-
-threshold optimization
-
-calibration-method selection
-
-model selection
-
-```
-
-
+- hyperparameter tuning;
+- feature selection;
+- threshold optimization;
+- calibration-method selection;
+- model selection.
 
 The holdout has already been consumed for final evaluation.
 
+Any future model changes require either:
 
+1. a new validation protocol, or
+2. genuinely new data.
 
-Any future model changes require a new validation protocol or genuinely new data.
+---
 
+## 12. Known Limitations
 
+The project has several important limitations:
 
-\---
+- The final holdout is a fresh internal split, but the underlying dataset had already been studied during Module 6.
+- The evaluation is therefore not equivalent to external validation.
+- The dataset contains no timestamp field, so temporal generalization cannot be tested.
+- The assumed 15% intervention uplift is not estimated from the dataset.
+- The model estimates churn risk, not causal treatment effect.
+- Expected ROI is sensitive to intervention uplift and customer-value assumptions.
+- Group-level metrics, especially for `SeniorCitizen`, require continued monitoring.
+- Production performance may change as customer behavior, pricing, campaigns, or market conditions change.
 
+---
 
+## 13. Responsible Use
 
-\## 12. Known Limitations
-
-
-
-The project uses an internal random holdout from a dataset previously studied in Module 6. It is therefore not equivalent to external validation.
-
-
-
-The dataset contains no timestamps, so temporal generalization cannot be evaluated.
-
-
-
-The assumed 15% intervention uplift is not estimated from the dataset.
-
-
-
-The model predicts churn risk rather than causal treatment effect.
-
-
-
-The final expected ROI is sensitive to uplift and customer-value assumptions.
-
-
-
-Group-level fairness metrics, particularly for `SeniorCitizen`, require continued monitoring.
-
-
-
-\---
-
-
-
-\## 13. Responsible Use
-
-
-
-The model should be used as a retention decision-support tool.
-
-
+The model is intended as a **retention decision-support tool**.
 
 It should not independently:
 
+- change customer prices;
+- alter customer contracts;
+- deny or restrict services;
+- make credit decisions;
+- generate unrestricted financial offers;
+- make causal claims about intervention effectiveness.
 
+Campaign outcomes and treatment exposure should be recorded so that future analysis can distinguish natural churn from intervention-driven outcomes.
 
-```text
+---
 
-change customer prices
+## 14. Production Monitoring
 
-alter contracts
-
-deny services
-
-make credit decisions
-
-generate unrestricted offers
-
-```
-
-
-
-Campaign outcomes and treatment exposure should be recorded so that future analyses can separate natural churn from intervention-driven outcomes.
-
-
-
-\---
-
-
-
-\## 14. Supporting Documentation
-
-
-
-The project includes:
-
-
+Recommended monitoring includes:
 
 ```text
-
-Final report
-
-Architecture diagram
-
-Model Card
-
-AI Usage Disclosure
-
-Detailed AI interaction log
-
-Model evaluation tables
-
-Business analysis
-
-Fairness evidence
-
-Source code
-
-Environment requirements
-
+Input schema and missing values
+Feature drift
+Prediction drift
+Churn prevalence
+Overall Brier score
+Group-level calibration
+Precision and recall
+False-positive and false-negative rates
+Campaign selection rate
+Batch completion
+Score freshness
+Model version
+Treatment status
+Campaign response
+Observed churn outcome
 ```
 
+A monitoring alert should trigger investigation rather than automatic retraining.
 
+---
 
+## 15. Supporting Documentation
+
+The project submission includes:
+
+- final report;
+- architecture diagram;
+- Model Card;
+- AI Usage Disclosure;
+- detailed AI interaction log;
+- model evaluation tables;
+- business analysis;
+- fairness evidence;
+- source code;
+- environment requirements.
+
+---
+
+## 16. Repository
+
+Public GitHub repository:
+
+**https://github.com/fruStoic/BAN6440_Final_Project**
